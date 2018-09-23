@@ -2,6 +2,7 @@ body
 {
 	background-color: #DDDDDD;
 	font-family: sans-serif;
+	overflow: hidden;
 }
 
 #content
@@ -18,4 +19,13 @@ body
 	height: 100%;
 	width: 100%;
 	position: absolute;
+}
+
+#canvas
+{
+	display: block;
+	position: absolute;
+	top: 0;
+	left: 0;
+	/*background-color: green;*/
 }
