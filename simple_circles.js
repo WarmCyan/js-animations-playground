@@ -1,7 +1,19 @@
 // thanks in part to https://codepen.io/GiacomoSorbi/pen/OyyzvO
 
-var topspeed = .1;
-var circlecount = 1000;
+var maxopacity = 0.3;
+var topspeed = 0.1;
+
+var fadein = 100.0; 
+var fadeout = 100.0;
+
+var spawnfrequency = 5;
+var circlecount = 10;
+var maxcirclecount = 500;
+
+var minlife = 100;
+var maxlife = 500;
+
+
 
 function Circle()
 {
@@ -10,32 +22,54 @@ function Circle()
 
 	this.vx = randRange(-topspeed, topspeed);
 	this.vy = randRange(-topspeed, topspeed);
-
-	this.radius = 10;
+	
+	this.radius = randInt(1, 50);
 
 	this.update = function()
 	{
 		this.x += this.vx;
 		this.y += this.vy;
+
+		if (this.opacity < this.targetopacity && this.age < this.lifetime) { this.opacity += (this.targetopacity / fadein); }
+		else if (this.opacity > 0 && this.age > this.lifetime) { this.opacity -= (this.targetopacity / fadeout); }
+		if (this.opacity < 0.0) { this.opacity = 0.0; }
+
+		this.age += 1;
+
+		if (this.opacity == 0.0 && this.age > this.lifetime) { this.dead = true; }
 	}
+
+	this.opacity = 0.0;
+	this.targetopacity = randRange(0.01, maxopacity);
+
+
+	var styleselector = randInt(1, 3);
 	
-	//this.radius = background ? hyperRange(radMin, radMax) * backgroundMlt : hyperRange(radMin, radMax);
-	//this.filled = this.radius < radThreshold ? (randint(0, 100) > filledCircle ? false : 'full') : (randint(0, 100) > concentricCircle ? false : 'concentric');
-	//this.color = background ? bgColors[randint(0, bgColors.length - 1)] : colors[randint(0, colors.length - 1)];
-	//this.borderColor = background ? bgColors[randint(0, bgColors.length - 1)] : colors[randint(0, colors.length - 1)];
-	//this.opacity = 0.05;
-	//this.speed = (background ? randRange(speedMin, speedMax) / backgroundMlt : randRange(speedMin, speedMax)); // * (radMin / this.radius);
-	//this.speedAngle = Math.random() * 2 * Math.PI;
-	//this.speedx = Math.cos(this.speedAngle) * this.speed;
-	//this.speedy = Math.sin(this.speedAngle) * this.speed;
-	//var spacex = Math.abs((this.x - (this.speedx < 0 ? -1 : 1) * (canvas.width / 2 + this.radius)) / this.speedx),
-		//spacey = Math.abs((this.y - (this.speedy < 0 ? -1 : 1) * (canvas.height / 2 + this.radius)) / this.speedy);
-	//this.ttl = Math.min(spacex, spacey);	
+	if (styleselector == 1)
+	{
+		this.color = "#999999";
+		this.fill = true;
+	}
+	else if (styleselector == 2)
+	{
+		this.color = "#FFFFFF";
+		this.fill = true;
+	}
+	else if (styleselector == 3)
+	{
+		this.color = "#555555";
+		this.fill = false;
+	}
+
+	this.lifetime = randInt(minlife,maxlife);
+	this.age = 0;
+
+	this.dead = false;
 }
 
 circles = [];
 
-function randint(a, b) { return Math.floor(Math.random() * (b - a + 1) + a); }
+function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1) + a); }
 function randRange(a, b) { return Math.random() * (b - a) + a; }	
 
 
@@ -43,7 +77,18 @@ function drawCircle(ctx, circle)
 {
 	ctx.beginPath();
 	ctx.arc(circle.x,circle.y,circle.radius,0,2*Math.PI);
-	ctx.stroke();	
+	ctx.globalAlpha = circle.opacity;
+
+	if (circle.fill)
+	{
+		ctx.fillStyle = circle.color;
+		ctx.fill();	
+	}
+	else
+	{
+		ctx.strokeStyle = circle.color;
+		ctx.stroke();
+	}
 }
 
 function start()
@@ -57,6 +102,7 @@ function start()
 
 
 
+var spawntimer = spawnfrequency; // frame counter between spawns
 
 function draw()
 {
@@ -67,19 +113,35 @@ function draw()
 	ctx.clearRect(0,0,canvas.width,canvas.height);
 	ctx.save();
 
-	//ctx.save();
-
 	// center the context
 	ctx.translate(canvas.width / 2, canvas.height / 2);
 
+	// draw every circle
+	var dead = [];
 	for (var i = 0; i < circles.length; i++)
 	{
-		//console.log(circles[i].x + " " + circles[i].y);
 		circles[i].update();
-		//console.log(circles[i].x + " " + circles[i].y);
 		drawCircle(ctx, circles[i]);
+		if (circles[i].dead) { dead.push(i); }
 	}
-	//ctx.save();
+
+	// handle spawns
+	if (circles.length < maxcirclecount)
+	{
+		spawntimer += 1;
+		if (spawntimer >= spawnfrequency)
+		{
+			spawntimer = 0;
+			circles.push(new Circle());
+		}
+	}
+
+	// handle despawns
+	for (var i = circles.length - 1; i >= 0; i--)
+	{
+		if (dead.indexOf(i) != -1) { circles.splice(i, 1); }
+	}
+	
 	ctx.restore();
 	window.requestAnimationFrame(draw)
 }
